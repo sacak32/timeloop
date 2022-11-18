@@ -25,62 +25,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "search/random.hpp"
-#include "search/exhaustive.hpp"
-#include "search/linear-pruned.hpp"
-#include "search/hybrid.hpp"
-#include "search/random-pruned.hpp"
-#include "search/genetic.hpp"
+#pragma once
 
-#include "search/search-factory.hpp"
+#include <iterator>
+#include <unordered_set>
+#include <boost/functional/hash.hpp>
+
+#include "mapping/mapping.hpp"
+#include "mapspaces/mapspace-base.hpp"
+#include "util/misc.hpp"
+#include "search/search.hpp"
 
 namespace search
 {
 
-//--------------------------------------------//
-//             Parser and Factory             //
-//--------------------------------------------//
-
-SearchAlgorithm* ParseAndConstruct(config::CompoundConfigNode config,
-                                   mapspace::MapSpace* mapspace,
-                                   unsigned id)
+class GeneticSearch : public SearchAlgorithm
 {
-  SearchAlgorithm* search = nullptr;
+ private:
+  enum class State
+  {
+    Ready,
+    WaitingForStatus,
+    Terminated
+  };
   
-  std::string search_alg = "hybrid";
-  config.lookupValue("algorithm", search_alg);
-    
-  if (search_alg == "random")
-  {
-    search = new RandomSearch(config, mapspace);
-  }
-  else if (search_alg == "exhaustive")
-  {
-    search = new ExhaustiveSearch(config, mapspace);
-  }
-  else if (search_alg == "linear-pruned")
-  {
-    search = new LinearPrunedSearch(config, mapspace, id);
-  }
-  else if (search_alg == "hybrid")
-  {
-    search = new HybridSearch(config, mapspace, id);
-  }
-  else if (search_alg == "random-pruned")
-  {
-    search = new RandomPrunedSearch(config, mapspace, id);
-  }
-  else if (search_alg == "genetic")
-  {
-    search = new GeneticSearch(config, mapspace);
-  }
-  else
-  {
-    std::cerr << "ERROR: unsupported search algorithm: " << search_alg << std::endl;
-    exit(-1);
-  }
+  // Config.
+  mapspace::MapSpace* mapspace_;
+  // std::unordered_set<std::uint64_t> bad_;
+  std::unordered_set<uint128_t> visited_;
+  bool filter_revisits_;
 
-  return search;
-}
+  // Submodules.
+  std::array<PatternGenerator128*, int(mapspace::Dimension::Num)> pgens_;
+  
+  // Live state.
+  State state_;
+  mapspace::ID mapping_id_;
+  uint128_t masking_space_covered_;
+  uint128_t valid_mappings_;
+
+  // Roll the dice along a single mapspace dimension.
+  void Roll(mapspace::Dimension dim);
+
+ public:
+  GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace);
+
+  // This class does not support being copied
+  GeneticSearch(const GeneticSearch&) = delete;
+  GeneticSearch& operator=(const GeneticSearch&) = delete;
+
+  ~GeneticSearch();
+  
+  bool Next(mapspace::ID& mapping_id);
+
+  void Report(Status status, double cost = 0);
+};
 
 } // namespace search
