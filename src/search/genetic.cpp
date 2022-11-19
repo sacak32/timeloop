@@ -64,6 +64,8 @@ GeneticSearch::GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpa
   // state.
   if (mapspace_->Size(mapspace::Dimension::IndexFactorization) == 0)
     state_ = State::Terminated;
+
+  generateInitialMappings();
 }
 
 GeneticSearch::~GeneticSearch()
@@ -77,7 +79,19 @@ GeneticSearch::~GeneticSearch()
   delete static_cast<SequenceGenerator128*>(
     pgens_[int(mapspace::Dimension::DatatypeBypass)]);
 }
-  
+
+void GeneticSearch::generateInitialMappings()
+{
+  for (int i = 0; i < worklist_size; i++)
+  {
+    Roll(mapspace::Dimension::IndexFactorization);
+    Roll(mapspace::Dimension::LoopPermutation);
+    Roll(mapspace::Dimension::Spatial);
+    Roll(mapspace::Dimension::DatatypeBypass);
+    worklist_.push_back(mapping_id_);
+  }
+}
+
 bool GeneticSearch::Next(mapspace::ID& mapping_id)
 {
   if (state_ == State::Terminated)
@@ -87,38 +101,10 @@ bool GeneticSearch::Next(mapspace::ID& mapping_id)
 
   assert(state_ == State::Ready);
     
-  if (masking_space_covered_ == mapspace_->Size(mapspace::Dimension::DatatypeBypass))
-  {
-    while (true)
-    {
-      Roll(mapspace::Dimension::IndexFactorization);
-      Roll(mapspace::Dimension::LoopPermutation);
-      Roll(mapspace::Dimension::Spatial);
-      Roll(mapspace::Dimension::DatatypeBypass);
-      if (filter_revisits_)
-      {
-        if (visited_.find(mapping_id_.Integer()) == visited_.end())
-        {
-          visited_.insert(mapping_id_.Integer());
-          break;
-        }
-      }
-      else
-      {
-        break;
-      }
-    }
-    masking_space_covered_ = 1;
-  }
-  else
-  {
-    Roll(mapspace::Dimension::DatatypeBypass);
-    masking_space_covered_++;
-  }
-
   state_ = State::WaitingForStatus;
     
-  mapping_id = mapping_id_;
+  mapping_id = worklist_.front();
+  worklist.pop_front();
   return true;
 }
 
@@ -131,16 +117,14 @@ void GeneticSearch::Report(Status status, double cost)
   if (status == Status::Success)
   {
     valid_mappings_++;
+    std::cout << "Success" << std::endl;
   }
-  // else
-  // {
-  //   bad_.insert(static_cast<std::uint64_t>(mapping_id_[int(mapspace::Dimension::IndexFactorization)]));
-  // }
+  else if (status == Status::MappingConstructionFailure)
+    std::cout << "Mapping Failure" << std::endl;
+  else if (status == Status::EvalFailure)
+    std::cout << "Evaluation Failure" << std::endl;
     
-  // total_mappings >= mapspace_->Size()
-  // if (bad_.size() == mapspace_->Size(mapspace::Dimension::IndexFactorization) ||
-  // if (valid_mappings_ >= std::min(search_size_, mapspace_->Size()))
-  if (valid_mappings_ >= mapspace_->Size())
+  if (worklist_.empty())
   {
     state_ = State::Terminated;
   }

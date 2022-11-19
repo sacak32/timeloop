@@ -64,8 +64,14 @@ class GeneticSearch : public SearchAlgorithm
   uint128_t masking_space_covered_;
   uint128_t valid_mappings_;
 
+  // Genetic extension
+  std::list<uint128_t> worklist_;
+  const int worklist_size = 50;
+  int worklist_iter;
+
   // Roll the dice along a single mapspace dimension.
   void Roll(mapspace::Dimension dim);
+  void generateInitialMappings();
 
  public:
   GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace);

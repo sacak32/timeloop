@@ -128,7 +128,7 @@ Application::Application(config::CompoundConfig* config,
 
   // Mapper (this application) configuration. (the rest)
 
-  num_threads_ = std::thread::hardware_concurrency();
+  num_threads_ = 1;
   if (mapper.lookupValue("num-threads", num_threads_))
   {
     std::cout << "Using threads = " << num_threads_ << std::endl;
