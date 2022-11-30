@@ -737,6 +737,8 @@ std::vector<Status> Uber::AssignSpatialTilingDirections(uint128_t mapping_spatia
     std::ostringstream fail_reason;
     fail_reason << "parallelism " << cumulative_fanout_utilization << " is less than "
                 << "constrained min-parallelism " << constraints_.MinParallelism();
+    std::cout << "parallelism " << cumulative_fanout_utilization << " is less than "
+                << "constrained min-parallelism " << constraints_.MinParallelism() << std::endl;
 
     // Report this as an arithmetic-level failure.
     unsigned topology_level = arch_props_.Specs().topology.ArithmeticMap();
@@ -771,6 +773,7 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     
   // Based on the spatial mapping ID, split the level nest into two sections:
   // first X and then Y.
+  //std::cout << "Spatial ID: " << tiling_level_id << " Split: " << spatial_split << std::endl;
   for (unsigned i = 0; i < level_nest.size(); i++)
   {
     auto& loop = level_nest.at(i);
@@ -781,16 +784,19 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     if (i < spatial_split)
     {
       // X
+      //std::cout << loop.end << " ";
       x_expansion *= (loop.end - loop.start);
       loop.spacetime_dimension = spacetime::Dimension::SpaceX;
     }
     else
     {
       // Y
+      //std::cout << loop.end << " ";
       y_expansion *= (loop.end - loop.start);
       loop.spacetime_dimension = spacetime::Dimension::SpaceY;
     }
   }
+  //std::cout << "\n";
 
   std::size_t fanout_max;
     
@@ -801,6 +807,8 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     success = false;
     fail_reason << "mapped fanoutX " << x_expansion << " exceeds hardware fanoutX "
                 << arch_props_.FanoutX(storage_level_id);
+    std::cout << "ID: " << tiling_level_id << "mapped fanoutX " << x_expansion << " exceeds hardware fanoutX "
+                << arch_props_.FanoutX(storage_level_id) << std::endl;            
   }
       
   if (filter_spatial_fanout_ && y_expansion > arch_props_.FanoutY(storage_level_id))
@@ -808,6 +816,8 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     success = false;
     fail_reason << "mapped fanoutY " << y_expansion << " exceeds hardware fanoutY "
                 << arch_props_.FanoutY(storage_level_id);
+    std::cout << "ID: " << tiling_level_id << "mapped fanoutY " << y_expansion << " exceeds hardware fanoutY "
+                << arch_props_.FanoutY(storage_level_id) << std::endl;            
   }
 
   fanout_max = arch_props_.Fanout(storage_level_id);

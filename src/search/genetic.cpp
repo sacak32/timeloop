@@ -38,10 +38,11 @@ void GeneticSearch::Roll(mapspace::Dimension dim)
 GeneticSearch::GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace) :
     SearchAlgorithm(),
     mapspace_(mapspace),
-    state_(State::Ready),
+    state_(State::Random),
     mapping_id_(mapspace->AllSizes()),
     masking_space_covered_(mapspace_->Size(mapspace::Dimension::DatatypeBypass)),
-    valid_mappings_(0)
+    valid_mappings_(0),
+    iter_count(0)
 {
   filter_revisits_ = false;
   config.lookupValue("filter-revisits", filter_revisits_);    
@@ -64,8 +65,6 @@ GeneticSearch::GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpa
   // state.
   if (mapspace_->Size(mapspace::Dimension::IndexFactorization) == 0)
     state_ = State::Terminated;
-
-  generateInitialMappings();
 }
 
 GeneticSearch::~GeneticSearch()
@@ -80,16 +79,10 @@ GeneticSearch::~GeneticSearch()
     pgens_[int(mapspace::Dimension::DatatypeBypass)]);
 }
 
-void GeneticSearch::generateInitialMappings()
-{
-  for (int i = 0; i < worklist_size; i++)
-  {
-    Roll(mapspace::Dimension::IndexFactorization);
-    Roll(mapspace::Dimension::LoopPermutation);
-    Roll(mapspace::Dimension::Spatial);
-    Roll(mapspace::Dimension::DatatypeBypass);
-    worklist_.push_back(mapping_id_);
-  }
+// Self mutate, randomly selects a new loop permutation
+void GeneticSearch::selfMutate(mapspace::ID& id) {
+  mapping_id_ = id;
+  Roll(mapspace::Dimension::LoopPermutation);
 }
 
 bool GeneticSearch::Next(mapspace::ID& mapping_id)
@@ -99,38 +92,88 @@ bool GeneticSearch::Next(mapspace::ID& mapping_id)
     return false;
   }
 
-  assert(state_ == State::Ready);
-    
-  state_ = State::WaitingForStatus;
-    
-  mapping_id = worklist_.front();
-  worklist.pop_front();
+  // Initial worklist entirely consist of random mappings
+  if (state_ == State::Random) {
+    // Roll new mapping
+    Roll(mapspace::Dimension::IndexFactorization);
+    Roll(mapspace::Dimension::LoopPermutation);
+    Roll(mapspace::Dimension::Spatial);
+    Roll(mapspace::Dimension::DatatypeBypass);
+  } else if (state_ == State::SelfMutate) {
+    selfMutate((*bestlist_it).first);
+    bestlist_it++;
+  }
+
+  mapping_id = mapping_id_;
+
+    // uint128_t mapping_index_factorization_id = mapping_id[int(mapspace::Dimension::IndexFactorization)];  
+    // uint128_t mapping_permutation_id = mapping_id[int(mapspace::Dimension::LoopPermutation)];
+    // uint128_t mapping_spatial_id = mapping_id[int(mapspace::Dimension::Spatial)];
+    // uint128_t mapping_datatype_bypass_id = mapping_id[int(mapspace::Dimension::DatatypeBypass)];
+
+  // std::cout << mapping_index_factorization_id << " ";
+  // std::cout << mapping_permutation_id << " ";
+  // std::cout << mapping_spatial_id << " ";
+  // std::cout << mapping_datatype_bypass_id << std::endl;
+  
   return true;
 }
 
 void GeneticSearch::Report(Status status, double cost)
-{
-  (void) cost;
-    
-  assert(state_ == State::WaitingForStatus);
+{    
 
   if (status == Status::Success)
   {
     valid_mappings_++;
     std::cout << "Success" << std::endl;
+
+    worklist_.push_back(std::make_pair(mapping_id_,cost));
   }
-  else if (status == Status::MappingConstructionFailure)
-    std::cout << "Mapping Failure" << std::endl;
-  else if (status == Status::EvalFailure)
-    std::cout << "Evaluation Failure" << std::endl;
-    
-  if (worklist_.empty())
+
+  // else if (status == Status::MappingConstructionFailure)
+  //   std::cout << "Mapping Failure" << std::endl;
+  // else if (status == Status::EvalFailure)
+  //   std::cout << "Evaluation Failure" << std::endl;
+  
+  // Worklist filled, pick the best ones and start generating the next worklist
+  if (state_ == State::Random && (int)(worklist_.size()) == worklist_max_size)
   {
-    state_ = State::Terminated;
+    std::cout << "Worklist filled" << std::endl;
+
+    // If this is the last iteration, terminate 
+    iter_count++;
+    if (iter_count >= MAX_ITER_COUNT) {
+      state_ = State::Terminated;
+      return;
+    }
+
+    // Sort the worklist
+    worklist_.sort([](const std::pair<mapspace::ID, double> &x,
+                      const std::pair<mapspace::ID, double> &y) 
+    {
+        return x.second < y.second;
+    });
+
+    // Copy the best ones to the best list
+    bestlist_.clear();
+    auto end = std::next(worklist_.begin(), bestlist_max_size);
+    std::copy(worklist_.begin(), end, std::back_inserter(bestlist_));
+
+    for (std::pair<mapspace::ID, double> p : bestlist_) {
+      std::cout << p.first[0] << " " << p.second << std::endl;
+    }
+
+    // Clear the worklist
+    worklist_.clear();
+
+    // Switch to self mutation stage
+    bestlist_it = bestlist_.begin();
+    state_ = State::SelfMutate;
   }
-  else
-  {
-    state_ = State::Ready;
+
+  // Self mutations are done, switch to random stage
+  if (state_== State::SelfMutate && bestlist_it == bestlist_.end()) {
+    state_ = State::Random;
   }
 }
 

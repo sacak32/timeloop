@@ -36,6 +36,8 @@
 #include "util/misc.hpp"
 #include "search/search.hpp"
 
+#define MAX_ITER_COUNT 5
+
 namespace search
 {
 
@@ -44,8 +46,8 @@ class GeneticSearch : public SearchAlgorithm
  private:
   enum class State
   {
-    Ready,
-    WaitingForStatus,
+    Random,
+    SelfMutate,
     Terminated
   };
   
@@ -64,15 +66,27 @@ class GeneticSearch : public SearchAlgorithm
   uint128_t masking_space_covered_;
   uint128_t valid_mappings_;
 
-  // Genetic extension
-  std::list<uint128_t> worklist_;
-  const int worklist_size = 50;
-  int worklist_iter;
+  // Number of iterations
+  int iter_count;
+
+  // Worklist
+  std::list<std::pair<mapspace::ID,double>> worklist_;
+  const int worklist_max_size = 50;
+
+  // Bestlist
+  std::list<std::pair<mapspace::ID,double>> bestlist_;
+  const int bestlist_max_size = 10;
+  std::list<std::pair<mapspace::ID,double>>::iterator bestlist_it;
+
+  bool flag;
 
   // Roll the dice along a single mapspace dimension.
   void Roll(mapspace::Dimension dim);
-  void generateInitialMappings();
+  void selfMutate(mapspace::ID& id);
 
+  // Flags
+  bool isInitial;
+  
  public:
   GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace);
 
