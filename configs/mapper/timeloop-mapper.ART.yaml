@@ -1,0 +1,13 @@
+ART:
+  version: 0.3
+  tables:
+  - name: system.DRAM
+    area: 1
+  - name: system.WeightInputBuffer
+    area: 1
+  - name: system.AccumulationBuffer[0..15]
+    area: 1
+  - name: system.MAC[0..1023]
+    area: 1
+  - name: system.Registers[0..1023]
+    area: 1

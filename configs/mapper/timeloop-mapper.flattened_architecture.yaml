@@ -1,0 +1,62 @@
+architecture:
+  version: 0.3
+  local:
+  - name: system.DRAM
+    class: DRAM
+    attributes:
+      bandwidth: 10.0
+      block-size: 64
+      technology: 65nm
+      type: LPDDR4
+      width: 64
+      word-bits: 8
+  - name: system.WeightInputBuffer
+    class: SRAM
+    attributes:
+      block-size: 64
+      datawidth: 8
+      depth: 4096
+      latency: 5ns
+      n_banks: 1
+      n_rd_ports: 0
+      n_rdwr_ports: 1
+      n_wr_ports: 0
+      technology: 45nm
+      width: 512
+      word-bits: 8
+  - name: system.AccumulationBuffer[0..15]
+    class: SRAM
+    attributes:
+      cluster-size: 16
+      datawidth: 24
+      depth: 128
+      latency: 5ns
+      n_banks: 1
+      n_rd_ports: 0
+      n_rdwr_ports: 1
+      n_wr_ports: 0
+      network-word-bits: 16
+      technology: 45nm
+      width: 24
+      word-bits: 24
+  - name: system.MAC[0..1023]
+    class: intmac
+    attributes:
+      datawidth: 8
+      latency: 5ns
+      meshX: 16
+      num_pipeline_stages: 2
+      technology: 45nm
+      word-bits: 8
+  - name: system.Registers[0..1023]
+    class: regfile
+    attributes:
+      cluster-size: 64
+      datawidth: 8
+      depth: 1
+      latency: 5ns
+      meshX: 16
+      n_ports: 2
+      technology: 45nm
+      width: 8
+      word-bits: 8

@@ -74,15 +74,15 @@ class GeneticSearch : public SearchAlgorithm
   const int worklist_max_size = 50;
 
   // Bestlist
-  std::list<std::pair<mapspace::ID,double>> bestlist_;
+  std::vector<std::pair<mapspace::ID,double>> bestlist_;
   const int bestlist_max_size = 10;
-  std::list<std::pair<mapspace::ID,double>>::iterator bestlist_it;
+  std::vector<std::pair<mapspace::ID,double>>::iterator bestlist_it;
 
   bool flag;
 
   // Roll the dice along a single mapspace dimension.
   void Roll(mapspace::Dimension dim);
-  void selfMutate(mapspace::ID& id);
+  void selfMutate(mapspace::ID& id1,mapspace::ID& id2);
 
   // Flags
   bool isInitial;

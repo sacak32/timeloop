@@ -1,0 +1,18 @@
+ART_summary:
+  version: 0.3
+  table_summary:
+  - name: system.DRAM
+    area: 1
+    primitive_estimations: dummy_table
+  - name: system.WeightInputBuffer
+    area: 1
+    primitive_estimations: dummy_table
+  - name: system.AccumulationBuffer[0..15]
+    area: 1
+    primitive_estimations: dummy_table
+  - name: system.MAC[0..1023]
+    area: 1
+    primitive_estimations: dummy_table
+  - name: system.Registers[0..1023]
+    area: 1
+    primitive_estimations: dummy_table

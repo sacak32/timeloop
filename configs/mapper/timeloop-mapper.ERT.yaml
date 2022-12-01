@@ -1,0 +1,163 @@
+ERT:
+  version: 0.3
+  tables:
+  - name: system.DRAM
+    actions:
+    - name: read
+      arguments: null
+      energy: 1
+    - name: write
+      arguments: null
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: system.WeightInputBuffer
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: system.AccumulationBuffer[0..15]
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: system.MAC[0..1023]
+    actions:
+    - name: mac_random
+      arguments: null
+      energy: 1
+    - name: mac_reused
+      arguments: null
+      energy: 1
+    - name: mac_gated
+      arguments: null
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: system.Registers[0..1023]
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0

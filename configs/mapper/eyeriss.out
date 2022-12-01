@@ -1,0 +1,41 @@
+input file: ./eyeriss-256.yaml
+  _______                __                
+ /_  __(_)___ ___  ___  / /___  ____  ____ 
+  / / / / __ `__ \/ _ \/ / __ \/ __ \/ __ \
+ / / / / / / / / /  __/ / /_/ / /_/ / /_/ /
+/_/ /_/_/ /_/ /_/\___/_/\____/\____/ .___/ 
+                                  /_/      
+
+Problem configuration complete.
+Architecture configuration complete.
+Sparse optimization configuration complete.
+Using all available hardware threads = 1
+Mapper configuration complete.
+Initializing Index Factorization subspace.
+  Factorization options along problem dimension R = 1
+  Factorization options along problem dimension S = 1
+  Factorization options along problem dimension P = 1
+  Factorization options along problem dimension Q = 8
+  Factorization options along problem dimension C = 45
+  Factorization options along problem dimension K = 495
+  Factorization options along problem dimension N = 1
+Mapspace Dimension [IndexFactorization] Size: 178200
+Mapspace Dimension [LoopPermutation] Size: 1
+Mapspace Dimension [Spatial] Size: 1
+Mapspace Dimension [DatatypeBypass] Size: 1
+Mapspace split! Per-split Mapping Dimension [IndexFactorization] Size: 178200 Residue: 0
+Mapspace construction complete.
+Search configuration complete.
+
+MESSAGE: no valid mappings found within search criteria. Some suggestions:
+(1) Observe each mapper thread's termination message. If it terminated due to
+    consecutive failed mappings, it will tell you the number of mappings that
+    failed because of a spatial fanout violation and the number that failed
+    because of a buffer capacity violation.
+(2) Check your architecture configuration (especially mapspace constraints).
+    Try to find the offending constraints that are likely to have caused the
+    above violations, and disable those constraints.
+(3) Try other search algorithms, and relax the termination criteria:
+    victory-condition, timeout and/or search-size.
+(4) Enable mapper's diagnostics (mapper.diagnostics = True) to track and emit 
+    more information about failed mappings.

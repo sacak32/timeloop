@@ -1,0 +1,72 @@
+ERT_summary:
+  version: 0.3
+  table_summary:
+  - name: system.DRAM
+    actions:
+    - name: read
+      energy: 1
+    - name: write
+      energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: system.DRAM
+      estimator: dummy_table
+  - name: system.WeightInputBuffer
+    actions:
+    - name: read
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: write
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: system.WeightInputBuffer
+      estimator: dummy_table
+  - name: system.AccumulationBuffer[0..15]
+    actions:
+    - name: read
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: write
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: system.AccumulationBuffer[0..15]
+      estimator: dummy_table
+  - name: system.MAC[0..1023]
+    actions:
+    - name: mac_random
+      energy: 1
+    - name: mac_reused
+      energy: 1
+    - name: mac_gated
+      energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: system.MAC[0..1023]
+      estimator: dummy_table
+  - name: system.Registers[0..1023]
+    actions:
+    - name: read
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: write
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: system.Registers[0..1023]
+      estimator: dummy_table
