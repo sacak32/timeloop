@@ -190,6 +190,31 @@ Application::Application(config::CompoundConfig* config,
   victory_condition_ = 500;
   mapper.lookupValue("victory-condition", victory_condition_);
 
+  // Number of n generations
+  // (do NOT divide between threads).
+  nGenerations_ = 20;
+  mapper.lookupValue("number-generations", nGenerations_);
+
+  population_size_ = 1000;
+  mapper.lookupValue("population-size", population_size_);
+
+  tournament_size_ = 20;
+  mapper.lookupValue("tournament-size", tournament_size_);
+
+  p_crossover_ = 0.5;
+  mapper.lookupValue("p-crossover", p_crossover_);
+
+  p_loop_ = 0.1;
+  mapper.lookupValue("p-loop", p_loop_);
+
+  p_data_bypass_ = 0.1;
+  mapper.lookupValue("p-data-bypass", p_data_bypass_);
+
+  p_index_factorization_ = 0.1;
+  mapper.lookupValue("p-index-factorization", p_index_factorization_);
+
+  p_random_ = 1 - p_crossover_ - p_data_bypass_ - p_index_factorization_ - p_loop_;
+
   // Inter-thread sync interval.
   std::uint32_t sync_interval = 0;
   mapper.lookupValue("sync-interval", sync_interval);
@@ -252,7 +277,7 @@ Application::Application(config::CompoundConfig* config,
   auto search = rootNode.lookup("mapper");
   for (unsigned t = 0; t < num_threads_; t++)
   {
-    search_.push_back(search::ParseAndConstruct(search, split_mapspaces_.at(t), t));
+    search_.push_back(search::ParseAndConstruct(search, split_mapspaces_.at(t), t, nGenerations_, population_size_, tournament_size_, p_crossover_, p_loop_, p_data_bypass_, p_index_factorization_, p_random_));
   }
   std::cout << "Search configuration complete." << std::endl;
   // Store the complete configuration in a string.
@@ -358,6 +383,14 @@ void Application::Run()
                                         search_size_,
                                         timeout_,
                                         victory_condition_,
+                                        nGenerations_,
+                                        population_size_,
+                                        tournament_size_,
+                                        p_crossover_,
+                                        p_loop_,
+                                        p_data_bypass_,
+                                        p_index_factorization_,
+                                        p_random_,
                                         sync_interval_,
                                         log_stats_,
                                         log_suboptimal_,

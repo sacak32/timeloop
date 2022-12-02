@@ -35,14 +35,30 @@ void GeneticSearch::Roll(mapspace::Dimension dim)
   mapping_id_.Set(int(dim), pgens_[int(dim)]->Next());
 }
 
-GeneticSearch::GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace) :
+GeneticSearch::GeneticSearch(config::CompoundConfigNode config, 
+                             mapspace::MapSpace* mapspace,
+                             std::uint32_t nGenerations_,
+                             std::uint32_t population_size_,
+                             std::uint32_t tournament_size_,
+                             std::double_t p_crossover_,
+                             std::double_t p_loop_,
+                             std::double_t p_data_bypass_,
+                             std::double_t p_index_factorization_,
+                             std::double_t p_random_) :
     SearchAlgorithm(),
     mapspace_(mapspace),
-    state_(State::Random),
+    nGenerations_(nGenerations_),
+    population_size_(population_size_),
+    tournament_size_(tournament_size_),
+    p_crossover_(p_crossover_),
+    p_loop_(p_loop_),
+    p_data_bypass_(p_data_bypass_),
+    p_index_factorization_(p_index_factorization_),
+    p_random_(p_random_),
+    state_(State::Init),
     mapping_id_(mapspace->AllSizes()),
     masking_space_covered_(mapspace_->Size(mapspace::Dimension::DatatypeBypass)),
-    valid_mappings_(0),
-    iter_count(0)
+    valid_mappings_(0)
 {
   filter_revisits_ = false;
   config.lookupValue("filter-revisits", filter_revisits_);    
@@ -59,6 +75,10 @@ GeneticSearch::GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpa
   // std::cout << "Mapping ID base = ";
   // Print<>(mapping_id_.Base());
   // std::cout << std::endl;
+
+  // Initialize
+  current_worklist_.reserve(population_size_);
+  next_worklist_.reserve(population_size_);
 
   // Special case: if the index factorization space has size 0
   // (can happen with residual mapspaces) then we init in terminated
@@ -122,16 +142,13 @@ bool GeneticSearch::Next(mapspace::ID& mapping_id)
   }
 
   // Initial worklist entirely consist of random mappings
-  if (state_ == State::Random) {
+  if (state_ == State::Init || state_ == State::Random) {
     // Roll new mapping
     Roll(mapspace::Dimension::IndexFactorization);
     Roll(mapspace::Dimension::LoopPermutation);
     Roll(mapspace::Dimension::Spatial);
     Roll(mapspace::Dimension::DatatypeBypass);
-  } else if (state_ == State::SelfMutate) {
-    selfMutate(bestlist_[0].first,bestlist_[1].first);
-    bestlist_it++;
-  }
+  } 
 
   mapping_id = mapping_id_;
 
@@ -151,12 +168,12 @@ bool GeneticSearch::Next(mapspace::ID& mapping_id)
 void GeneticSearch::Report(Status status, double cost)
 {    
 
-  if (status == Status::Success)
+  if (status == Status::Success && state_ == State::Init)
   {
     valid_mappings_++;
     std::cout << "Success" << std::endl;
 
-    worklist_.push_back(std::make_pair(mapping_id_,cost));
+    current_worklist_.push_back(std::make_pair(mapping_id_,cost));
   }
   else if (status == Status::MappingConstructionFailure)
     std::cout << "Mapping Failure" << std::endl;
@@ -164,44 +181,16 @@ void GeneticSearch::Report(Status status, double cost)
     std::cout << "Evaluation Failure" << std::endl;
   
   // Worklist filled, pick the best ones and start generating the next worklist
-  if (state_ == State::Random && (int)(worklist_.size()) == worklist_max_size)
+  if (state_ == State::Init && (uint32_t)(current_worklist_.size()) == population_size_)
   {
     std::cout << "Worklist filled" << std::endl;
 
     // If this is the last iteration, terminate 
-    iter_count++;
-    if (iter_count >= MAX_ITER_COUNT) {
+    cur_gen++;
+    if (cur_gen >= nGenerations_) {
       state_ = State::Terminated;
       return;
     }
-
-    // Sort the worklist
-    worklist_.sort([](const std::pair<mapspace::ID, double> &x,
-                      const std::pair<mapspace::ID, double> &y) 
-    {
-        return x.second < y.second;
-    });
-
-    // Copy the best ones to the best list
-    bestlist_.clear();
-    auto end = std::next(worklist_.begin(), bestlist_max_size);
-    std::copy(worklist_.begin(), end, std::back_inserter(bestlist_));
-
-    for (std::pair<mapspace::ID, double> p : bestlist_) {
-      std::cout << p.first[0] << " " << p.second << std::endl;
-    }
-
-    // Clear the worklist
-    worklist_.clear();
-
-    // Switch to self mutation stage
-    bestlist_it = bestlist_.begin();
-    state_ = State::SelfMutate;
-  }
-
-  // Self mutations are done, switch to random stage
-  if (state_== State::SelfMutate && bestlist_it == bestlist_.end()) {
-    state_ = State::Random;
   }
 }
 

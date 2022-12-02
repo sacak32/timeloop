@@ -46,13 +46,23 @@ class GeneticSearch : public SearchAlgorithm
  private:
   enum class State
   {
+    Init,
     Random,
     SelfMutate,
     Terminated
   };
-  
+
   // Config.
   mapspace::MapSpace* mapspace_;
+  std::uint32_t nGenerations_;
+  std::uint32_t population_size_;
+  std::uint32_t tournament_size_;
+  std::double_t p_crossover_;
+  std::double_t p_loop_;
+  std::double_t p_data_bypass_;
+  std::double_t p_index_factorization_;
+  std::double_t p_random_;
+
   // std::unordered_set<std::uint64_t> bad_;
   std::unordered_set<uint128_t> visited_;
   bool filter_revisits_;
@@ -66,17 +76,12 @@ class GeneticSearch : public SearchAlgorithm
   uint128_t masking_space_covered_;
   uint128_t valid_mappings_;
 
-  // Number of iterations
-  int iter_count;
+  // Current Generation
+  uint32_t cur_gen = 1;
 
   // Worklist
-  std::list<std::pair<mapspace::ID,double>> worklist_;
-  const int worklist_max_size = 50;
-
-  // Bestlist
-  std::vector<std::pair<mapspace::ID,double>> bestlist_;
-  const int bestlist_max_size = 10;
-  std::vector<std::pair<mapspace::ID,double>>::iterator bestlist_it;
+  std::vector<std::pair<mapspace::ID,double>> current_worklist_;
+  std::vector<std::pair<mapspace::ID,double>> next_worklist_;
 
   bool flag;
 
@@ -88,7 +93,17 @@ class GeneticSearch : public SearchAlgorithm
   bool isInitial;
   
  public:
-  GeneticSearch(config::CompoundConfigNode config, mapspace::MapSpace* mapspace);
+  GeneticSearch(config::CompoundConfigNode config, 
+                mapspace::MapSpace* mapspace,
+                std::uint32_t nGenerations_,
+                std::uint32_t population_size_,
+                std::uint32_t tournament_size_,
+                std::double_t p_crossover_,
+                std::double_t p_loop_,
+                std::double_t p_data_bypass_,
+                std::double_t p_index_factorization_,
+                std::double_t p_random_
+                );
 
   // This class does not support being copied
   GeneticSearch(const GeneticSearch&) = delete;

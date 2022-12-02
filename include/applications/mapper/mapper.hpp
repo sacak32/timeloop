@@ -63,6 +63,15 @@ class Application
   std::uint32_t num_threads_;
   std::uint32_t timeout_;
   std::uint32_t victory_condition_;
+  std::uint32_t nGenerations_;
+  std::uint32_t population_size_;
+  std::uint32_t tournament_size_;
+  std::double_t p_crossover_;
+  std::double_t p_loop_;
+  std::double_t p_data_bypass_;
+  std::double_t p_index_factorization_;
+  std::double_t p_random_;
+
   uint128_t sync_interval_;
   bool log_stats_;
   bool log_suboptimal_;

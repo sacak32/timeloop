@@ -39,6 +39,14 @@ namespace search
 
 SearchAlgorithm* ParseAndConstruct(config::CompoundConfigNode config,
                                    mapspace::MapSpace* mapspace,
-                                   unsigned id);
+                                   unsigned id,
+                                   std::uint32_t nGenerations_,
+                                   std::uint32_t population_size_,
+                                    std::uint32_t tournament_size_,
+                                    std::double_t p_crossover_,
+                                    std::double_t p_loop_,
+                                    std::double_t p_data_bypass_,
+                                    std::double_t p_index_factorization_,
+                                    std::double_t p_random_);
 
 } // namespace search

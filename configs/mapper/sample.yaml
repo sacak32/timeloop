@@ -30,6 +30,8 @@ mapper:
   - energy
   - delay
   search-size: 0
+  worklist-size: 50
+  number-generations: 100
   victory-condition: 100
   timeout: 1000
 

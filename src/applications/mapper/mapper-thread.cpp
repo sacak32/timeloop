@@ -227,6 +227,14 @@ MapperThread::MapperThread(
   uint128_t search_size,
   std::uint32_t timeout,
   std::uint32_t victory_condition,
+  std::uint32_t nGenerations_,
+  std::uint32_t population_size_,
+  std::uint32_t tournament_size_,
+  std::double_t p_crossover_,
+  std::double_t p_loop_,
+  std::double_t p_data_bypass_,
+  std::double_t p_index_factorization_,
+  std::double_t p_random_,
   uint128_t sync_interval,
   bool log_stats,
   bool log_suboptimal,
@@ -247,6 +255,14 @@ MapperThread::MapperThread(
     search_size_(search_size),
     timeout_(timeout),
     victory_condition_(victory_condition),
+    nGenerations_(nGenerations_),
+    population_size_(population_size_),
+    tournament_size_(tournament_size_),
+    p_crossover_(p_crossover_),
+    p_loop_(p_loop_),
+    p_data_bypass_(p_data_bypass_),
+    p_index_factorization_(p_index_factorization_),
+    p_random_(p_random_),
     sync_interval_(sync_interval),
     log_stats_(log_stats),
     log_suboptimal_(log_suboptimal),
@@ -298,294 +314,258 @@ void MapperThread::Run()
   // =================
   // Main mapper loop.
   // =================
-  while (true)
-  {
-    if (live_status_)
-    {
-      std::stringstream msg;
 
-      msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
-          << std::setw(11) << (total_mappings - valid_mappings)  << std::setw(11) << valid_mappings
-          << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
-          << std::setw(11) << mappings_since_last_best_update;
-
-      if (valid_mappings > 0)
-      {
-        msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << (stats_.thread_best.stats.utilization * 100) << "%"
-            << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
-          stats_.thread_best.stats.algorithmic_computes;
-      }
-
-      mutex_->lock();
-      mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
-      refresh();
-      mutex_->unlock();
-    }
-
-    // Termination conditions.
-    bool terminate = false;
-
-    if (gTerminate)
-    {
-      mutex_->lock();
-      log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
-                  << "global termination flag activated, terminating search."
-                  << std::endl;
-      mutex_->unlock();
-      terminate = true;
-    }
-
-    if (search_size_ > 0 && valid_mappings == search_size_)
-    {
-      mutex_->lock();
-      log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << search_size_
-                  << " valid mappings found, terminating search."
-                  << std::endl;
-      mutex_->unlock();
-      terminate = true;
-    }
-
-    if (victory_condition_ > 0 && mappings_since_last_best_update == victory_condition_)
-    {
-      mutex_->lock();
-      log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << victory_condition_
-                  << " suboptimal mappings found since the last upgrade, terminating search."
-                  << std::endl;
-      mutex_->unlock();
-      terminate = true;
-    }
-        
-    if ((invalid_mappings_mapcnstr + invalid_mappings_eval) > 0 &&
-        (invalid_mappings_mapcnstr + invalid_mappings_eval) == timeout_)
-    {
-      mutex_->lock();
-      log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << timeout_
-                  << " invalid mappings (" << invalid_mappings_mapcnstr << " fanout, "
-                  << invalid_mappings_eval << " capacity) found since the last valid mapping, "
-                  << "terminating search." << std::endl;
-      mutex_->unlock();
-      terminate = true;
-    }
-
-    // Try to obtain the next mapping from the search algorithm.
-    mapspace::ID mapping_id;
-    if (!search_->Next(mapping_id))
-    {
-      mutex_->lock();
-      log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
-                  << "search algorithm is done, terminating search."
-                  << std::endl;        
-      mutex_->unlock();
-      terminate = true;
-    }
-
-    // Terminate.
-    if (terminate)
+  if (search_->isGenetic) {
+    while (true)
     {
       if (live_status_)
       {
+        std::stringstream msg;
+
+        msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
+            << std::setw(11) << (total_mappings - valid_mappings)  << std::setw(11) << valid_mappings
+            << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
+            << std::setw(11) << mappings_since_last_best_update;
+
+        if (valid_mappings > 0)
+        {
+          msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << (stats_.thread_best.stats.utilization * 100) << "%"
+              << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
+            stats_.thread_best.stats.algorithmic_computes;
+        } 
+
         mutex_->lock();
-        mvaddstr(thread_id_ + ncurses_line_offset, 0, "-");
+        mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
         refresh();
         mutex_->unlock();
       }
-      break;
-    }
 
-    //
-    // Periodically sync thread_best with global best.
-    //
-    if (total_mappings != 0 && sync_interval_ > 0 && total_mappings % sync_interval_ == 0)
-    {
-      mutex_->lock();
-          
-      // Sync from global best to thread_best.
-      bool global_pulled = false;
-      if (best_->valid)
+      // Termination conditions.
+      bool terminate = false;
+
+      if (gTerminate)
       {
-        if (stats_.thread_best.UpdateIfBetter(*best_, optimization_metrics_))
-        {
-          global_pulled = true;
-        }
-      }
-
-      // Sync from thread_best to global best.
-      if (stats_.thread_best.valid && !global_pulled)
-      {
-        best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
-      }
-          
-      mutex_->unlock();
-    }
-
-    //
-    // Check if the only change vs. the previous mapping was in the Bypass
-    // dimension. This is useful later.
-    //
-    bool only_bypass_changed = false;
-    if (total_mappings > 1)
-    {
-      bool match = true;
-      for (unsigned idim = 0; idim < unsigned(mapspace::Dimension::Num); idim++)
-      {
-        if (mapspace::Dimension(idim) != mapspace::Dimension::DatatypeBypass)
-          match &= (mapping_id[idim] == prev_mapping_id[idim]);
-      }
-      only_bypass_changed = match;
-    }
-    prev_mapping_id = mapping_id;
-
-    //
-    // Begin Mapping. We do this in several stages with increasing algorithmic
-    // complexity and attempt to bail out as quickly as possible at each stage.
-    //
-    bool success = true;
-
-    // Stage 1: Construct a mapping from the mapping ID. This step can fail
-    //          because the space of *legal* mappings isn't dense (unfortunately),
-    //          so a mapping ID may point to an illegal mapping.
-    Mapping mapping;
-
-    auto construction_status = mapspace_->ConstructMapping(mapping_id, &mapping, !diagnostics_on_);
-    success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
-                               [](bool cur, const mapspace::Status& status)
-                               { return cur && status.success; });
-
-    total_mappings++;
-
-    if (!success)
-    {
-      invalid_mappings_mapcnstr++;
-      if (diagnostics_on_)
-      {
-        for (unsigned level = 0; level < construction_status.size(); level++)
-          if (!construction_status.at(level).success)
-            stats_.UpdateFails(FailClass::Fanout, construction_status.at(level).fail_reason, level, mapping);
-      }
-      search_->Report(search::Status::MappingConstructionFailure);
-      continue;
-    }
-
-    // Stage 2: (Re)Configure a hardware model to evaluate the mapping
-    //          on, and run some lightweight pre-checks that the
-    //          model can use to quickly reject a nest.
-    //engine.Spec(arch_specs_);
-    auto status_per_level = engine.PreEvaluationCheck(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
-    success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
-                               [](bool cur, const model::EvalStatus& status)
-                               { return cur && status.success; });
-
-    if (!success)
-    {
-      // Pre-evaluation failed.
-      // If the only change in this mapping vs. the previous mapping was in
-      // its dataspace bypass scheme, then we may not want to make this
-      // failure count towards the timeout termination trigger.
-      if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
-      {
-        invalid_mappings_eval++;
-      }
-
-      if (diagnostics_on_)
-      {
-        for (unsigned level = 0; level < status_per_level.size(); level++)
-          if (!status_per_level.at(level).success)
-            stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
-      }
-      search_->Report(search::Status::EvalFailure);
-      continue;
-    }
-
-    // Stage 3: Heavyweight evaluation.
-    status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
-    success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
-                               [](bool cur, const model::EvalStatus& status)
-                               { return cur && status.success; });
-    if (!success)
-    {
-      // Evaluation failed.
-      // If the only change in this mapping vs. the previous mapping was in
-      // its dataspace bypass scheme, then we may not want to make this
-      // failure count towards the timeout termination trigger.
-      if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
-      {
-        invalid_mappings_eval++;
-      }
-
-      if (diagnostics_on_)
-      {
-        for (unsigned level = 0; level < status_per_level.size(); level++)
-          if (!status_per_level.at(level).success)
-            stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
-      }
-      search_->Report(search::Status::EvalFailure);
-      continue;
-    }
-
-    // SUCCESS!!!
-    auto stats = engine.GetTopology().GetStats();
-    EvaluationResult result = { true, mapping, stats };
-
-    valid_mappings++;
-    if (log_stats_)
-    {
-      mutex_->lock();
-      log_stream_ << "[" << thread_id_ << "] INVALID " << total_mappings << " " << valid_mappings
-                  << " " << invalid_mappings_mapcnstr + invalid_mappings_eval << std::endl;
-      mutex_->unlock();
-    }        
-    invalid_mappings_mapcnstr = 0;
-    invalid_mappings_eval = 0;
-    search_->Report(search::Status::Success, Cost(stats, optimization_metrics_.at(0)));
-
-    bool is_sparse_topology = !sparse_optimizations_->no_optimization_applied;
-    if (log_suboptimal_)
-    {
-      mutex_->lock();
-      if (is_sparse_topology)
-      {      
-        log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
-                  << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
-                  << " | pJ/Algorithmic-Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
-                  << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
-                  << " | " << mapping.PrintCompact()
-                  << std::endl;
-      }
-      else
-      {
-        log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
-                  << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
-                  << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
-                  << " | " << mapping.PrintCompact()
-                  << std::endl;
-      }
-      mutex_->unlock();
-    }
-
-    // Is the new mapping "better" than the previous best mapping?
-    if (stats_.thread_best.UpdateIfBetter(result, optimization_metrics_))
-    {
-      if (log_stats_)
-      {
-        // FIXME: improvement only captures the primary stat.
-        double improvement = stats_.thread_best.valid ?
-          (Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) - Cost(stats, optimization_metrics_.at(0))) /
-          Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) : 1.0;
         mutex_->lock();
-        log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
-                    << " " << mappings_since_last_best_update << " " << improvement << std::endl;
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
+                    << "global termination flag activated, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      if (search_size_ > 0 && valid_mappings == search_size_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << search_size_
+                    << " valid mappings found, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      if (victory_condition_ > 0 && mappings_since_last_best_update == victory_condition_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << victory_condition_
+                    << " suboptimal mappings found since the last upgrade, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+          
+      if ((invalid_mappings_mapcnstr + invalid_mappings_eval) > 0 &&
+          (invalid_mappings_mapcnstr + invalid_mappings_eval) == timeout_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << timeout_
+                    << " invalid mappings (" << invalid_mappings_mapcnstr << " fanout, "
+                    << invalid_mappings_eval << " capacity) found since the last valid mapping, "
+                    << "terminating search." << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      // Try to obtain the next mapping from the search algorithm.
+      mapspace::ID mapping_id;
+      if (!search_->Next(mapping_id))
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
+                    << "search algorithm is done, terminating search."
+                    << std::endl;        
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      // Terminate.
+      if (terminate)
+      {
+        if (live_status_)
+        {
+          mutex_->lock();
+          mvaddstr(thread_id_ + ncurses_line_offset, 0, "-");
+          refresh();
+          mutex_->unlock();
+        }
+        break;
+      }
+
+      //
+      // Periodically sync thread_best with global best.
+      //
+      if (total_mappings != 0 && sync_interval_ > 0 && total_mappings % sync_interval_ == 0)
+      {
+        mutex_->lock();
+            
+        // Sync from global best to thread_best.
+        bool global_pulled = false;
+        if (best_->valid)
+        {
+          if (stats_.thread_best.UpdateIfBetter(*best_, optimization_metrics_))
+          {
+            global_pulled = true;
+          }
+        }
+
+        // Sync from thread_best to global best.
+        if (stats_.thread_best.valid && !global_pulled)
+        {
+          best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
+        }
+            
         mutex_->unlock();
       }
-        
-      if (!log_suboptimal_)
+
+      //
+      // Check if the only change vs. the previous mapping was in the Bypass
+      // dimension. This is useful later.
+      //
+      bool only_bypass_changed = false;
+      if (total_mappings > 1)
+      {
+        bool match = true;
+        for (unsigned idim = 0; idim < unsigned(mapspace::Dimension::Num); idim++)
+        {
+          if (mapspace::Dimension(idim) != mapspace::Dimension::DatatypeBypass)
+            match &= (mapping_id[idim] == prev_mapping_id[idim]);
+        }
+        only_bypass_changed = match;
+      }
+      prev_mapping_id = mapping_id;
+
+      //
+      // Begin Mapping. We do this in several stages with increasing algorithmic
+      // complexity and attempt to bail out as quickly as possible at each stage.
+      //
+      bool success = true;
+
+      // Stage 1: Construct a mapping from the mapping ID. This step can fail
+      //          because the space of *legal* mappings isn't dense (unfortunately),
+      //          so a mapping ID may point to an illegal mapping.
+      Mapping mapping;
+
+      auto construction_status = mapspace_->ConstructMapping(mapping_id, &mapping, !diagnostics_on_);
+      success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                [](bool cur, const mapspace::Status& status)
+                                { return cur && status.success; });
+
+      total_mappings++;
+
+      if (!success)
+      {
+        invalid_mappings_mapcnstr++;
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < construction_status.size(); level++)
+            if (!construction_status.at(level).success)
+              stats_.UpdateFails(FailClass::Fanout, construction_status.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::MappingConstructionFailure);
+        continue;
+      }
+
+      // Stage 2: (Re)Configure a hardware model to evaluate the mapping
+      //          on, and run some lightweight pre-checks that the
+      //          model can use to quickly reject a nest.
+      //engine.Spec(arch_specs_);
+      auto status_per_level = engine.PreEvaluationCheck(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+      success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
+                                [](bool cur, const model::EvalStatus& status)
+                                { return cur && status.success; });
+
+      if (!success)
+      {
+        // Pre-evaluation failed.
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          invalid_mappings_eval++;
+        }
+
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < status_per_level.size(); level++)
+            if (!status_per_level.at(level).success)
+              stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::EvalFailure);
+        continue;
+      }
+
+      // Stage 3: Heavyweight evaluation.
+      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+      success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
+                                [](bool cur, const model::EvalStatus& status)
+                                { return cur && status.success; });
+      if (!success)
+      {
+        // Evaluation failed.
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          invalid_mappings_eval++;
+        }
+
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < status_per_level.size(); level++)
+            if (!status_per_level.at(level).success)
+              stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::EvalFailure);
+        continue;
+      }
+
+      // SUCCESS!!!
+      auto stats = engine.GetTopology().GetStats();
+      EvaluationResult result = { true, mapping, stats };
+
+      valid_mappings++;
+      if (log_stats_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << thread_id_ << "] INVALID " << total_mappings << " " << valid_mappings
+                    << " " << invalid_mappings_mapcnstr + invalid_mappings_eval << std::endl;
+        mutex_->unlock();
+      }        
+      invalid_mappings_mapcnstr = 0;
+      invalid_mappings_eval = 0;
+      search_->Report(search::Status::Success, Cost(stats, optimization_metrics_.at(0)));
+
+      bool is_sparse_topology = !sparse_optimizations_->no_optimization_applied;
+      if (log_suboptimal_)
       {
         mutex_->lock();
         if (is_sparse_topology)
         {      
           log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
                     << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
-                    << " | pJ/Algorithmic-Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
-                    << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                    << " | pJ/Algorithmic-Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
+                    << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
                     << " | " << mapping.PrintCompact()
                     << std::endl;
         }
@@ -593,23 +573,377 @@ void MapperThread::Run()
         {
           log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
                     << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
-                    << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                    << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
                     << " | " << mapping.PrintCompact()
                     << std::endl;
-        }        mutex_->unlock();
+        }
+        mutex_->unlock();
       }
 
-      mappings_since_last_best_update = 0;
-    }
-    else
-    {
-      // If the only change in this mapping vs. the previous mapping was in
-      // its dataspace bypass scheme, then we may not want to make this
-      // failure count towards the timeout termination trigger.
-      if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+      // Is the new mapping "better" than the previous best mapping?
+      if (stats_.thread_best.UpdateIfBetter(result, optimization_metrics_))
       {
-        mappings_since_last_best_update++;
+        if (log_stats_)
+        {
+          // FIXME: improvement only captures the primary stat.
+          double improvement = stats_.thread_best.valid ?
+            (Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) - Cost(stats, optimization_metrics_.at(0))) /
+            Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) : 1.0;
+          mutex_->lock();
+          log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
+                      << " " << mappings_since_last_best_update << " " << improvement << std::endl;
+          mutex_->unlock();
+        }
+          
+        if (!log_suboptimal_)
+        {
+          mutex_->lock();
+          if (is_sparse_topology)
+          {      
+            log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                      << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                      << " | pJ/Algorithmic-Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
+                      << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                      << " | " << mapping.PrintCompact()
+                      << std::endl;
+          }
+          else
+          {
+            log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                      << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                      << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                      << " | " << mapping.PrintCompact()
+                      << std::endl;
+          }        mutex_->unlock();
+        }
+
+        mappings_since_last_best_update = 0;
       }
-    }
-  } // while ()
+      else
+      {
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          mappings_since_last_best_update++;
+        }
+      }
+    } // while ()
+  } else {
+    while (true)
+    {
+      if (live_status_)
+      {
+        std::stringstream msg;
+
+        msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
+            << std::setw(11) << (total_mappings - valid_mappings)  << std::setw(11) << valid_mappings
+            << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
+            << std::setw(11) << mappings_since_last_best_update;
+
+        if (valid_mappings > 0)
+        {
+          msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << (stats_.thread_best.stats.utilization * 100) << "%"
+              << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
+            stats_.thread_best.stats.algorithmic_computes;
+        } 
+
+        mutex_->lock();
+        mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
+        refresh();
+        mutex_->unlock();
+      }
+
+      // Termination conditions.
+      bool terminate = false;
+
+      if (gTerminate)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
+                    << "global termination flag activated, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      if (search_size_ > 0 && valid_mappings == search_size_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << search_size_
+                    << " valid mappings found, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      if (victory_condition_ > 0 && mappings_since_last_best_update == victory_condition_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << victory_condition_
+                    << " suboptimal mappings found since the last upgrade, terminating search."
+                    << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+          
+      if ((invalid_mappings_mapcnstr + invalid_mappings_eval) > 0 &&
+          (invalid_mappings_mapcnstr + invalid_mappings_eval) == timeout_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: " << timeout_
+                    << " invalid mappings (" << invalid_mappings_mapcnstr << " fanout, "
+                    << invalid_mappings_eval << " capacity) found since the last valid mapping, "
+                    << "terminating search." << std::endl;
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      // Try to obtain the next mapping from the search algorithm.
+      mapspace::ID mapping_id;
+      if (!search_->Next(mapping_id))
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
+                    << "search algorithm is done, terminating search."
+                    << std::endl;        
+        mutex_->unlock();
+        terminate = true;
+      }
+
+      // Terminate.
+      if (terminate)
+      {
+        if (live_status_)
+        {
+          mutex_->lock();
+          mvaddstr(thread_id_ + ncurses_line_offset, 0, "-");
+          refresh();
+          mutex_->unlock();
+        }
+        break;
+      }
+
+      //
+      // Periodically sync thread_best with global best.
+      //
+      if (total_mappings != 0 && sync_interval_ > 0 && total_mappings % sync_interval_ == 0)
+      {
+        mutex_->lock();
+            
+        // Sync from global best to thread_best.
+        bool global_pulled = false;
+        if (best_->valid)
+        {
+          if (stats_.thread_best.UpdateIfBetter(*best_, optimization_metrics_))
+          {
+            global_pulled = true;
+          }
+        }
+
+        // Sync from thread_best to global best.
+        if (stats_.thread_best.valid && !global_pulled)
+        {
+          best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
+        }
+            
+        mutex_->unlock();
+      }
+
+      //
+      // Check if the only change vs. the previous mapping was in the Bypass
+      // dimension. This is useful later.
+      //
+      bool only_bypass_changed = false;
+      if (total_mappings > 1)
+      {
+        bool match = true;
+        for (unsigned idim = 0; idim < unsigned(mapspace::Dimension::Num); idim++)
+        {
+          if (mapspace::Dimension(idim) != mapspace::Dimension::DatatypeBypass)
+            match &= (mapping_id[idim] == prev_mapping_id[idim]);
+        }
+        only_bypass_changed = match;
+      }
+      prev_mapping_id = mapping_id;
+
+      //
+      // Begin Mapping. We do this in several stages with increasing algorithmic
+      // complexity and attempt to bail out as quickly as possible at each stage.
+      //
+      bool success = true;
+
+      // Stage 1: Construct a mapping from the mapping ID. This step can fail
+      //          because the space of *legal* mappings isn't dense (unfortunately),
+      //          so a mapping ID may point to an illegal mapping.
+      Mapping mapping;
+
+      auto construction_status = mapspace_->ConstructMapping(mapping_id, &mapping, !diagnostics_on_);
+      success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                [](bool cur, const mapspace::Status& status)
+                                { return cur && status.success; });
+
+      total_mappings++;
+
+      if (!success)
+      {
+        invalid_mappings_mapcnstr++;
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < construction_status.size(); level++)
+            if (!construction_status.at(level).success)
+              stats_.UpdateFails(FailClass::Fanout, construction_status.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::MappingConstructionFailure);
+        continue;
+      }
+
+      // Stage 2: (Re)Configure a hardware model to evaluate the mapping
+      //          on, and run some lightweight pre-checks that the
+      //          model can use to quickly reject a nest.
+      //engine.Spec(arch_specs_);
+      auto status_per_level = engine.PreEvaluationCheck(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+      success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
+                                [](bool cur, const model::EvalStatus& status)
+                                { return cur && status.success; });
+
+      if (!success)
+      {
+        // Pre-evaluation failed.
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          invalid_mappings_eval++;
+        }
+
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < status_per_level.size(); level++)
+            if (!status_per_level.at(level).success)
+              stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::EvalFailure);
+        continue;
+      }
+
+      // Stage 3: Heavyweight evaluation.
+      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+      success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
+                                [](bool cur, const model::EvalStatus& status)
+                                { return cur && status.success; });
+      if (!success)
+      {
+        // Evaluation failed.
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          invalid_mappings_eval++;
+        }
+
+        if (diagnostics_on_)
+        {
+          for (unsigned level = 0; level < status_per_level.size(); level++)
+            if (!status_per_level.at(level).success)
+              stats_.UpdateFails(FailClass::Capacity, status_per_level.at(level).fail_reason, level, mapping);
+        }
+        search_->Report(search::Status::EvalFailure);
+        continue;
+      }
+
+      // SUCCESS!!!
+      auto stats = engine.GetTopology().GetStats();
+      EvaluationResult result = { true, mapping, stats };
+
+      valid_mappings++;
+      if (log_stats_)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << thread_id_ << "] INVALID " << total_mappings << " " << valid_mappings
+                    << " " << invalid_mappings_mapcnstr + invalid_mappings_eval << std::endl;
+        mutex_->unlock();
+      }        
+      invalid_mappings_mapcnstr = 0;
+      invalid_mappings_eval = 0;
+      search_->Report(search::Status::Success, Cost(stats, optimization_metrics_.at(0)));
+
+      bool is_sparse_topology = !sparse_optimizations_->no_optimization_applied;
+      if (log_suboptimal_)
+      {
+        mutex_->lock();
+        if (is_sparse_topology)
+        {      
+          log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                    << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                    << " | pJ/Algorithmic-Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
+                    << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                    << " | " << mapping.PrintCompact()
+                    << std::endl;
+        }
+        else
+        {
+          log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                    << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                    << " | pJ/Compute = " << std::setw(4) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                    << " | " << mapping.PrintCompact()
+                    << std::endl;
+        }
+        mutex_->unlock();
+      }
+
+      // Is the new mapping "better" than the previous best mapping?
+      if (stats_.thread_best.UpdateIfBetter(result, optimization_metrics_))
+      {
+        if (log_stats_)
+        {
+          // FIXME: improvement only captures the primary stat.
+          double improvement = stats_.thread_best.valid ?
+            (Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) - Cost(stats, optimization_metrics_.at(0))) /
+            Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) : 1.0;
+          mutex_->lock();
+          log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
+                      << " " << mappings_since_last_best_update << " " << improvement << std::endl;
+          mutex_->unlock();
+        }
+          
+        if (!log_suboptimal_)
+        {
+          mutex_->lock();
+          if (is_sparse_topology)
+          {      
+            log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                      << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                      << " | pJ/Algorithmic-Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
+                      << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                      << " | " << mapping.PrintCompact()
+                      << std::endl;
+          }
+          else
+          {
+            log_stream_ << "[" << std::setw(3) << thread_id_ << "]" 
+                      << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization 
+                      << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                      << " | " << mapping.PrintCompact()
+                      << std::endl;
+          }        mutex_->unlock();
+        }
+
+        mappings_since_last_best_update = 0;
+      }
+      else
+      {
+        // If the only change in this mapping vs. the previous mapping was in
+        // its dataspace bypass scheme, then we may not want to make this
+        // failure count towards the timeout termination trigger.
+        if (penalize_consecutive_bypass_fails_ || !only_bypass_changed)
+        {
+          mappings_since_last_best_update++;
+        }
+      }
+    } // while ()
+  }
 }

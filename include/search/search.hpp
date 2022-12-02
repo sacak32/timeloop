@@ -42,6 +42,8 @@ enum class Status
 class SearchAlgorithm
 { 
  public:
+  bool isGenetic = false;
+
   SearchAlgorithm() {}
   virtual ~SearchAlgorithm() {}
   virtual bool Next(mapspace::ID& mapping_id) = 0;
