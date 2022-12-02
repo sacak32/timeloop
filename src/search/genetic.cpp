@@ -27,6 +27,7 @@
 
 #include "search/genetic.hpp"
 
+// ./../build/timeloop-mapper ./sample.yaml > test.out
 namespace search
 {
 
