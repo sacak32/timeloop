@@ -70,6 +70,7 @@ class Application
   std::double_t p_loop_;
   std::double_t p_data_bypass_;
   std::double_t p_index_factorization_;
+  std::double_t p_reproduce_;
   std::double_t p_random_;
 
   uint128_t sync_interval_;

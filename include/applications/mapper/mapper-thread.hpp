@@ -68,21 +68,61 @@ struct FailInfo
 //--------------------------------------------//
 //               Mapper Thread                //
 //--------------------------------------------//
+/** Mutation types for a program */
+   enum class mutation_t : uint32_t
+   {
+     /** Placeholder for first generation programs */
+     none,
+
+     /** Crossover mutations */
+     crossover,
+
+
+     loop,
+
+
+     data_bypass,
+
+
+     index_factorization,
+
+     /** Program reproduction */
+     reproduce,
+
+
+     random
+   }; // enum class mutation_t
+
+  class GeneticMapping 
+  {
+    public:
+    mapspace::ID mapping_id;
+    double cost;
+    mutation_t mut_type;
+    
+    GeneticMapping() = default;
+    GeneticMapping(mapspace::ID mapping_id, double cost, mutation_t mut_type): mapping_id(mapping_id), cost(cost), mut_type(mut_type) {}
+    void updateMapping(mapspace::ID mid, double c) {
+      mapping_id = mid;
+      cost = c;
+    }
+  };
 
 class MapperThread
 {
  public:
-  struct Stats
-  {
-    EvaluationResult thread_best;
-    std::map<FailClass, std::map<unsigned, FailInfo>> fail_stats;
 
-    std::default_random_engine generator;
-    std::uniform_real_distribution<double> distribution;
+   struct Stats
+   {
+     EvaluationResult thread_best;
+     std::map<FailClass, std::map<unsigned, FailInfo>> fail_stats;
 
-    Stats();
+     std::default_random_engine generator;
+     std::uniform_real_distribution<double> distribution;
 
-    void UpdateFails(FailClass fail_class, std::string fail_reason, unsigned level, const Mapping& mapping);
+     Stats();
+
+     void UpdateFails(FailClass fail_class, std::string fail_reason, unsigned level, const Mapping &mapping);
   };
 
  private:
@@ -101,6 +141,7 @@ class MapperThread
   std::double_t p_loop_;
   std::double_t p_data_bypass_;
   std::double_t p_index_factorization_;
+  std::double_t p_reproduce_;
   std::double_t p_random_;
   uint128_t sync_interval_;
   bool log_stats_;
@@ -119,43 +160,88 @@ class MapperThread
   std::thread thread_;
   Stats stats_;
   
+  // Genetic variables
+  std::vector<GeneticMapping> current_worklist_;
+  std::vector<GeneticMapping> next_worklist_;
+
  public:
-  MapperThread(
-    unsigned thread_id,
-    search::SearchAlgorithm* search,
-    mapspace::MapSpace* mapspace,
-    std::mutex* mutex,
-    uint128_t search_size,
-    std::uint32_t timeout,
-    std::uint32_t victory_condition,
-    std::uint32_t nGenerations_,
-    std::uint32_t population_size_,
-    std::uint32_t tournament_size_,
-    std::double_t p_crossover_,
-    std::double_t p_loop_,
-    std::double_t p_data_bypass_,
-    std::double_t p_index_factorization_,
-    std::double_t p_random_,
-    uint128_t sync_interval,
-    bool log_stats,
-    bool log_suboptimal,
-    std::ostream& log_stream,
-    bool live_status,
-    bool diagnostics_on,
-    bool penalize_consecutive_bypass_fails,
-    std::vector<std::string> optimization_metrics,
-    model::Engine::Specs arch_specs,
-    problem::Workload &workload,
-    sparse::SparseOptimizationInfo* sparse_optimizations,
-    EvaluationResult* best
-    );
+ void run_tournament(std::vector<GeneticMapping>& progs,
+                    std::vector<int>& win_indices,
+                                          const int n_progs,
+                                          const int n_tours,
+                                          const int tour_size,
+                                          std::mt19937& mt);
 
-  void Start();
+ void crossover(GeneticMapping &prog,
+                GeneticMapping &donor,
+                GeneticMapping &p_out,
+                std::mt19937 &rng,
+                uint128_t& total_mappings,
+                uint128_t& valid_mappings,
+                uint128_t& invalid_mappings_mapcnstr,
+                uint128_t& invalid_mappings_eval,
+                model::Engine& engine);
+                
+ void loop_permute_mutation(const GeneticMapping &prog,
+                GeneticMapping &p_out,
+                std::mt19937 &rng,
+                uint128_t& total_mappings,
+                uint128_t& valid_mappings,
+                uint128_t& invalid_mappings_mapcnstr,
+                uint128_t& invalid_mappings_eval,
+                model::Engine& engine);
+ void data_bypass_mutation(const GeneticMapping &prog,
+                GeneticMapping &p_out,
+                std::mt19937 &rng,
+                uint128_t& total_mappings,
+                uint128_t& valid_mappings,
+                uint128_t& invalid_mappings_mapcnstr,
+                uint128_t& invalid_mappings_eval,
+                model::Engine& engine);
+ void index_factorization_mutation(const GeneticMapping &prog,
+                GeneticMapping &p_out,
+                std::mt19937 &rng,
+                uint128_t& total_mappings,
+                uint128_t& valid_mappings,
+                uint128_t& invalid_mappings_mapcnstr,
+                uint128_t& invalid_mappings_eval,
+                model::Engine& engine);
+ MapperThread(
+     unsigned thread_id,
+     search::SearchAlgorithm *search,
+     mapspace::MapSpace *mapspace,
+     std::mutex *mutex,
+     uint128_t search_size,
+     std::uint32_t timeout,
+     std::uint32_t victory_condition,
+     std::uint32_t nGenerations_,
+     std::uint32_t population_size_,
+     std::uint32_t tournament_size_,
+     std::double_t p_crossover_,
+     std::double_t p_loop_,
+     std::double_t p_data_bypass_,
+     std::double_t p_index_factorization_,
+     std::double_t p_reproduce_,
+     std::double_t p_random_,
+     uint128_t sync_interval,
+     bool log_stats,
+     bool log_suboptimal,
+     std::ostream &log_stream,
+     bool live_status,
+     bool diagnostics_on,
+     bool penalize_consecutive_bypass_fails,
+     std::vector<std::string> optimization_metrics,
+     model::Engine::Specs arch_specs,
+     problem::Workload &workload,
+     sparse::SparseOptimizationInfo *sparse_optimizations,
+     EvaluationResult *best);
 
-  void Join();
+ void Start();
 
-  const Stats& GetStats() const;
+ void Join();
 
-  void Run();
+ const Stats &GetStats() const;
+
+ void Run();
       
 };

@@ -48,7 +48,6 @@ class GeneticSearch : public SearchAlgorithm
   {
     Init,
     Random,
-    SelfMutate,
     Terminated
   };
 
@@ -61,6 +60,7 @@ class GeneticSearch : public SearchAlgorithm
   std::double_t p_loop_;
   std::double_t p_data_bypass_;
   std::double_t p_index_factorization_;
+  std::double_t p_reproduce_;
   std::double_t p_random_;
 
   // std::unordered_set<std::uint64_t> bad_;
@@ -68,31 +68,25 @@ class GeneticSearch : public SearchAlgorithm
   bool filter_revisits_;
 
   // Submodules.
-  std::array<PatternGenerator128*, int(mapspace::Dimension::Num)> pgens_;
+  
   
   // Live state.
   State state_;
-  mapspace::ID mapping_id_;
+  
   uint128_t masking_space_covered_;
   uint128_t valid_mappings_;
-
-  // Current Generation
-  uint32_t cur_gen = 1;
-
-  // Worklist
-  std::vector<std::pair<mapspace::ID,double>> current_worklist_;
-  std::vector<std::pair<mapspace::ID,double>> next_worklist_;
 
   bool flag;
 
   // Roll the dice along a single mapspace dimension.
   void Roll(mapspace::Dimension dim);
-  void selfMutate(mapspace::ID& id1,mapspace::ID& id2);
 
   // Flags
   bool isInitial;
   
  public:
+ std::array<PatternGenerator128*, int(mapspace::Dimension::Num)> pgens_;
+  mapspace::ID mapping_id_;
   GeneticSearch(config::CompoundConfigNode config, 
                 mapspace::MapSpace* mapspace,
                 std::uint32_t nGenerations_,
@@ -102,6 +96,7 @@ class GeneticSearch : public SearchAlgorithm
                 std::double_t p_loop_,
                 std::double_t p_data_bypass_,
                 std::double_t p_index_factorization_,
+                std::double_t p_reproduce_,
                 std::double_t p_random_
                 );
 
@@ -112,7 +107,7 @@ class GeneticSearch : public SearchAlgorithm
   ~GeneticSearch();
   
   bool Next(mapspace::ID& mapping_id);
-
+  bool Next(mapspace::ID& mapping_id, int mode);
   void Report(Status status, double cost = 0);
 };
 

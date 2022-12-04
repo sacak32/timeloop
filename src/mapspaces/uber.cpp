@@ -807,8 +807,8 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     success = false;
     fail_reason << "mapped fanoutX " << x_expansion << " exceeds hardware fanoutX "
                 << arch_props_.FanoutX(storage_level_id);
-    std::cout << "ID: " << tiling_level_id << "mapped fanoutX " << x_expansion << " exceeds hardware fanoutX "
-                << arch_props_.FanoutX(storage_level_id) << std::endl;            
+    // std::cout << "ID: " << tiling_level_id << "mapped fanoutX " << x_expansion << " exceeds hardware fanoutX "
+    //             << arch_props_.FanoutX(storage_level_id) << std::endl;            
   }
       
   if (filter_spatial_fanout_ && y_expansion > arch_props_.FanoutY(storage_level_id))
@@ -816,8 +816,8 @@ Status Uber::AssignSpatialTilingDirections_Level_Expand(std::uint32_t spatial_sp
     success = false;
     fail_reason << "mapped fanoutY " << y_expansion << " exceeds hardware fanoutY "
                 << arch_props_.FanoutY(storage_level_id);
-    std::cout << "ID: " << tiling_level_id << "mapped fanoutY " << y_expansion << " exceeds hardware fanoutY "
-                << arch_props_.FanoutY(storage_level_id) << std::endl;            
+    // std::cout << "ID: " << tiling_level_id << "mapped fanoutY " << y_expansion << " exceeds hardware fanoutY "
+    //             << arch_props_.FanoutY(storage_level_id) << std::endl;            
   }
 
   fanout_max = arch_props_.Fanout(storage_level_id);

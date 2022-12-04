@@ -213,7 +213,10 @@ Application::Application(config::CompoundConfig* config,
   p_index_factorization_ = 0.1;
   mapper.lookupValue("p-index-factorization", p_index_factorization_);
 
-  p_random_ = 1 - p_crossover_ - p_data_bypass_ - p_index_factorization_ - p_loop_;
+  p_reproduce_ = 0.1;
+  mapper.lookupValue("p-reproduce", p_reproduce_);
+
+  p_random_ = 1 - p_crossover_ - p_data_bypass_ - p_index_factorization_ - p_loop_ - p_reproduce_;
 
   // Inter-thread sync interval.
   std::uint32_t sync_interval = 0;
@@ -277,7 +280,7 @@ Application::Application(config::CompoundConfig* config,
   auto search = rootNode.lookup("mapper");
   for (unsigned t = 0; t < num_threads_; t++)
   {
-    search_.push_back(search::ParseAndConstruct(search, split_mapspaces_.at(t), t, nGenerations_, population_size_, tournament_size_, p_crossover_, p_loop_, p_data_bypass_, p_index_factorization_, p_random_));
+    search_.push_back(search::ParseAndConstruct(search, split_mapspaces_.at(t), t, nGenerations_, population_size_, tournament_size_, p_crossover_, p_loop_, p_data_bypass_, p_index_factorization_, p_reproduce_, p_random_));
   }
   std::cout << "Search configuration complete." << std::endl;
   // Store the complete configuration in a string.
@@ -390,6 +393,7 @@ void Application::Run()
                                         p_loop_,
                                         p_data_bypass_,
                                         p_index_factorization_,
+                                        p_reproduce_,
                                         p_random_,
                                         sync_interval_,
                                         log_stats_,

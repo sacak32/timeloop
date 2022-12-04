@@ -51,6 +51,7 @@ SearchAlgorithm* ParseAndConstruct(config::CompoundConfigNode config,
                                     std::double_t p_loop_,
                                     std::double_t p_data_bypass_,
                                     std::double_t p_index_factorization_,
+                                    std::double_t p_reproduce_,
                                     std::double_t p_random_)
 {
   SearchAlgorithm* search = nullptr;
@@ -80,7 +81,7 @@ SearchAlgorithm* ParseAndConstruct(config::CompoundConfigNode config,
   }
   else if (search_alg == "genetic")
   {
-    search = new GeneticSearch(config, mapspace, nGenerations_, population_size_, tournament_size_, p_crossover_, p_loop_, p_data_bypass_, p_index_factorization_, p_random_);
+    search = new GeneticSearch(config, mapspace, nGenerations_, population_size_, tournament_size_, p_crossover_, p_loop_, p_data_bypass_, p_index_factorization_, p_reproduce_, p_random_);
     search->isGenetic = true;
   }
   else

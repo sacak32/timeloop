@@ -30,8 +30,13 @@ mapper:
   - energy
   - delay
   search-size: 0
-  worklist-size: 50
-  number-generations: 100
+  population-size: 50
+  number-generations: 3
+  p-crossover: 0.5
+  p-loop: 0.1
+  p-data-bypass: 0.1
+  p-index-factorization: 0.1
+  p-reproduce: 0.1
   victory-condition: 100
   timeout: 1000
 

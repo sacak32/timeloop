@@ -42,12 +42,19 @@ enum class Status
 class SearchAlgorithm
 { 
  public:
+ std::array<PatternGenerator128*, int(mapspace::Dimension::Num)> pgens_;
   bool isGenetic = false;
-
   SearchAlgorithm() {}
   virtual ~SearchAlgorithm() {}
   virtual bool Next(mapspace::ID& mapping_id) = 0;
+  virtual bool Next(mapspace::ID& mapping_id, int mode) { return false; }
   virtual void Report(Status status, double cost = 0) = 0;
+  // void run_tournament(std::vector<GeneticMapping>& progs,
+  //                   std::vector<int>& win_indices,
+  //                                         const int n_progs,
+  //                                         const int n_tours,
+  //                                         const int tour_size,
+  //                                         std::mt19937& mt) {}
 };
 
 } // namespace search

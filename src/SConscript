@@ -38,7 +38,7 @@ if GetOption('debug'):
     env.Append(CCFLAGS = ['-g', '-O0'])
 else:
     env.Append(CCFLAGS = ['-g', '-O3', '-flto'])
-env.Append(CCFLAGS = ['-Werror', '-Wall', '-Wextra', '-fmax-errors=1', '-std=c++17', '-pthread'])
+env.Append(CCFLAGS = [   '-std=c++17', '-pthread'])
 
 env.Append(LIBPATH = ['.'])
 # If we are doing a static build, the timeloop library must be the first
