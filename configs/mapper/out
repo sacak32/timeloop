@@ -1,0 +1,13 @@
+input file: ./eyeriss-1024.cfg
+  _______                __                
+ /_  __(_)___ ___  ___  / /___  ____  ____ 
+  / / / / __ `__ \/ _ \/ / __ \/ __ \/ __ \
+ / / / / / / / / /  __/ / /_/ / /_/ / /_/ /
+/_/ /_/_/ /_/ /_/\___/_/\____/\____/ .___/ 
+                                  /_/      
+
+Problem configuration complete.
+Architecture configuration complete.
+Sparse optimization configuration complete.
+Using all available hardware threads = 1
+Mapper configuration complete.

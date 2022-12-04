@@ -188,17 +188,17 @@ namespace search
 
     if (status == Status::Success)
     {
-      std::cout << "Success" << std::endl;
+      // std::cout << "Success" << std::endl;
       valid_mappings_++;
     }
     // else
     // {
     //   bad_.insert(static_cast<std::uint64_t>(mapping_id_[int(mapspace::Dimension::IndexFactorization)]));
     // }
-    else if (status == Status::MappingConstructionFailure)
-      std::cout << "Mapping Failure" << std::endl;
-    else if (status == Status::EvalFailure)
-      std::cout << "Evaluation Failure" << std::endl;
+    // else if (status == Status::MappingConstructionFailure)
+    //   std::cout << "Mapping Failure" << std::endl;
+    // else if (status == Status::EvalFailure)
+    //   std::cout << "Evaluation Failure" << std::endl;
 
     // total_mappings >= mapspace_->Size()
     // if (bad_.size() == mapspace_->Size(mapspace::Dimension::IndexFactorization) ||
