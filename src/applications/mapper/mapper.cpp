@@ -192,13 +192,13 @@ Application::Application(config::CompoundConfig* config,
 
   // Number of n generations
   // (do NOT divide between threads).
-  nGenerations_ = 20;
+  nGenerations_ = 5;
   mapper.lookupValue("number-generations", nGenerations_);
 
-  population_size_ = 1000;
+  population_size_ = 100;
   mapper.lookupValue("population-size", population_size_);
 
-  tournament_size_ = 20;
+  tournament_size_ = 5;
   mapper.lookupValue("tournament-size", tournament_size_);
 
   p_crossover_ = 0.5;

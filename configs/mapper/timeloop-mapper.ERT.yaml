@@ -1,7 +1,7 @@
 ERT:
   version: 0.3
   tables:
-  - name: system.DRAM
+  - name: diannao.DRAM
     actions:
     - name: read
       arguments: null
@@ -12,52 +12,7 @@ ERT:
     - name: idle
       arguments: null
       energy: 0
-  - name: system.WeightInputBuffer
-    actions:
-    - name: read
-      arguments:
-        address_delta: 0
-        data_delta: 0
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 0
-        data_delta: 1
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 1
-        data_delta: 0
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 1
-        data_delta: 1
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 0
-        data_delta: 0
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 0
-        data_delta: 1
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 1
-        data_delta: 0
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 1
-        data_delta: 1
-      energy: 1
-    - name: idle
-      arguments: null
-      energy: 0
-  - name: system.AccumulationBuffer[0..15]
+  - name: diannao.OutputBuffer
     actions:
     - name: read
       arguments:
@@ -102,7 +57,142 @@ ERT:
     - name: idle
       arguments: null
       energy: 0
-  - name: system.MAC[0..1023]
+  - name: diannao.InputBuffer
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: diannao.PsumRegFile
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: diannao.WeightBuffer
+    actions:
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: read
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 0
+        data_delta: 1
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 0
+      energy: 1
+    - name: write
+      arguments:
+        address_delta: 1
+        data_delta: 1
+      energy: 1
+    - name: idle
+      arguments: null
+      energy: 0
+  - name: diannao.MACs
     actions:
     - name: mac_random
       arguments: null
@@ -112,51 +202,6 @@ ERT:
       energy: 1
     - name: mac_gated
       arguments: null
-      energy: 1
-    - name: idle
-      arguments: null
-      energy: 0
-  - name: system.Registers[0..1023]
-    actions:
-    - name: read
-      arguments:
-        address_delta: 0
-        data_delta: 0
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 0
-        data_delta: 1
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 1
-        data_delta: 0
-      energy: 1
-    - name: read
-      arguments:
-        address_delta: 1
-        data_delta: 1
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 0
-        data_delta: 0
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 0
-        data_delta: 1
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 1
-        data_delta: 0
-      energy: 1
-    - name: write
-      arguments:
-        address_delta: 1
-        data_delta: 1
       energy: 1
     - name: idle
       arguments: null

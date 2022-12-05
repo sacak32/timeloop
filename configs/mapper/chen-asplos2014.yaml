@@ -235,6 +235,7 @@ mapspace:
 
 mapper:
   live-status : True
+  algorithm: genetic
 
 problem:
   R       : 3

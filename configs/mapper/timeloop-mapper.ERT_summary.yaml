@@ -1,7 +1,7 @@
 ERT_summary:
   version: 0.3
   table_summary:
-  - name: system.DRAM
+  - name: diannao.DRAM
     actions:
     - name: read
       energy: 1
@@ -10,9 +10,9 @@ ERT_summary:
     - name: idle
       energy: 0
     primitive_estimation(s):
-    - name: system.DRAM
+    - name: diannao.DRAM
       estimator: dummy_table
-  - name: system.WeightInputBuffer
+  - name: diannao.OutputBuffer
     actions:
     - name: read
       average_energy: 1.0
@@ -25,9 +25,9 @@ ERT_summary:
     - name: idle
       energy: 0
     primitive_estimation(s):
-    - name: system.WeightInputBuffer
+    - name: diannao.OutputBuffer
       estimator: dummy_table
-  - name: system.AccumulationBuffer[0..15]
+  - name: diannao.InputBuffer
     actions:
     - name: read
       average_energy: 1.0
@@ -40,9 +40,39 @@ ERT_summary:
     - name: idle
       energy: 0
     primitive_estimation(s):
-    - name: system.AccumulationBuffer[0..15]
+    - name: diannao.InputBuffer
       estimator: dummy_table
-  - name: system.MAC[0..1023]
+  - name: diannao.PsumRegFile
+    actions:
+    - name: read
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: write
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: diannao.PsumRegFile
+      estimator: dummy_table
+  - name: diannao.WeightBuffer
+    actions:
+    - name: read
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: write
+      average_energy: 1.0
+      max_energy: 1
+      min_energy: 1
+    - name: idle
+      energy: 0
+    primitive_estimation(s):
+    - name: diannao.WeightBuffer
+      estimator: dummy_table
+  - name: diannao.MACs
     actions:
     - name: mac_random
       energy: 1
@@ -53,20 +83,5 @@ ERT_summary:
     - name: idle
       energy: 0
     primitive_estimation(s):
-    - name: system.MAC[0..1023]
-      estimator: dummy_table
-  - name: system.Registers[0..1023]
-    actions:
-    - name: read
-      average_energy: 1.0
-      max_energy: 1
-      min_energy: 1
-    - name: write
-      average_energy: 1.0
-      max_energy: 1
-      min_energy: 1
-    - name: idle
-      energy: 0
-    primitive_estimation(s):
-    - name: system.Registers[0..1023]
+    - name: diannao.MACs
       estimator: dummy_table

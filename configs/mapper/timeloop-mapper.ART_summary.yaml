@@ -1,18 +1,21 @@
 ART_summary:
   version: 0.3
   table_summary:
-  - name: system.DRAM
+  - name: diannao.DRAM
     area: 1
     primitive_estimations: dummy_table
-  - name: system.WeightInputBuffer
+  - name: diannao.OutputBuffer
     area: 1
     primitive_estimations: dummy_table
-  - name: system.AccumulationBuffer[0..15]
+  - name: diannao.InputBuffer
     area: 1
     primitive_estimations: dummy_table
-  - name: system.MAC[0..1023]
+  - name: diannao.PsumRegFile
     area: 1
     primitive_estimations: dummy_table
-  - name: system.Registers[0..1023]
+  - name: diannao.WeightBuffer
+    area: 1
+    primitive_estimations: dummy_table
+  - name: diannao.MACs
     area: 1
     primitive_estimations: dummy_table

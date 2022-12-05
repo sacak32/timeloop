@@ -262,11 +262,9 @@ void MapperThread::loop_permute_mutation(const GeneticMapping &prog,
   mapspace::ID mapping_id(mapspace_->AllSizes());
   mapping_id = prog.mapping_id;
 
-    int iglobal;
+  int iglobal;
   for (iglobal = 0; iglobal < 1000; ++iglobal)
   {
-        std::cout << "loop permutation" << std::endl;
-
     search_->Next(mapping_id, 1);
 
     //
@@ -368,7 +366,7 @@ void MapperThread::loop_permute_mutation(const GeneticMapping &prog,
 
     while (true)
     {
-      search_->Next(mapping_id,0);
+      search_->Next(mapping_id, 0);
 
       //
       // Begin Mapping. We do this in several stages with increasing algorithmic
@@ -474,14 +472,13 @@ void MapperThread::data_bypass_mutation(const GeneticMapping &prog,
                                         uint128_t &invalid_mappings_eval,
                                         model::Engine &engine)
 {
-  
+
   mapspace::ID mapping_id(mapspace_->AllSizes());
   mapping_id = prog.mapping_id;
 
-    int iglobal;
+  int iglobal;
   for (iglobal = 0; iglobal < 1000; ++iglobal)
   {
-    std::cout << "dbypass" << std::endl;
     search_->Next(mapping_id, 2);
 
     //
@@ -583,7 +580,7 @@ void MapperThread::data_bypass_mutation(const GeneticMapping &prog,
 
     while (true)
     {
-      search_->Next(mapping_id,0);
+      search_->Next(mapping_id, 0);
 
       //
       // Begin Mapping. We do this in several stages with increasing algorithmic
@@ -696,8 +693,6 @@ void MapperThread::index_factorization_mutation(const GeneticMapping &prog,
   int iglobal;
   for (iglobal = 0; iglobal < 1000; ++iglobal)
   {
-        std::cout << "ifactorization" << std::endl;
-
     search_->Next(mapping_id, 3);
 
     //
@@ -799,7 +794,7 @@ void MapperThread::index_factorization_mutation(const GeneticMapping &prog,
 
     while (true)
     {
-      search_->Next(mapping_id,0);
+      search_->Next(mapping_id, 0);
 
       //
       // Begin Mapping. We do this in several stages with increasing algorithmic
@@ -917,33 +912,22 @@ void MapperThread::crossover(GeneticMapping &prog,
   int iglobal;
   for (iglobal = 0; iglobal < 8; ++iglobal)
   {
-    std::cout << "iglobal: " << iglobal << std::endl;
     int toss1 = u01(rng);
     int toss2 = u01(rng);
     int toss3 = u01(rng);
 
     mapping_id.Set(int(mapspace::Dimension::IndexFactorization), d[toss1].mapping_id[int(mapspace::Dimension::IndexFactorization)]);
-    // std::cout << "iglobal12: " << iglobal << std::endl;
     mapping_id.Set(int(mapspace::Dimension::LoopPermutation), d[toss2].mapping_id[int(mapspace::Dimension::LoopPermutation)]);
     mapping_id.Set(int(mapspace::Dimension::Spatial), d[toss1].mapping_id[int(mapspace::Dimension::Spatial)]);
     mapping_id.Set(int(mapspace::Dimension::DatatypeBypass), d[toss3].mapping_id[int(mapspace::Dimension::DatatypeBypass)]);
 
-    //
-    // Begin Mapping. We do this in several stages with increasing algorithmic
-    // complexity and attempt to bail out as quickly as possible at each stage.
-    //
     bool success = true;
-
-    // Stage 1: Construct a mapping from the mapping ID. This step can fail
-    //          because the space of *legal* mappings isn't dense (unfortunately),
-    //          so a mapping ID may point to an illegal mapping.
     Mapping mapping;
 
     auto construction_status = mapspace_->ConstructMapping(mapping_id, &mapping, !diagnostics_on_);
     success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
                                [](bool cur, const mapspace::Status &status)
                                { return cur && status.success; });
-    // std::cout << "iglobal2: " << iglobal << std::endl;
     total_mappings++;
 
     if (!success)
@@ -952,10 +936,6 @@ void MapperThread::crossover(GeneticMapping &prog,
       continue;
     }
 
-    // Stage 2: (Re)Configure a hardware model to evaluate the mapping
-    //          on, and run some lightweight pre-checks that the
-    //          model can use to quickly reject a nest.
-    // engine.Spec(arch_specs_);
     auto status_per_level = engine.PreEvaluationCheck(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
     success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus &status)
@@ -967,7 +947,6 @@ void MapperThread::crossover(GeneticMapping &prog,
       continue;
     }
 
-    // Stage 3: Heavyweight evaluation.
     status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
     success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus &status)
@@ -1027,12 +1006,8 @@ void MapperThread::crossover(GeneticMapping &prog,
 
     while (true)
     {
-      search_->Next(mapping_id,0);
+      search_->Next(mapping_id, 0);
 
-      //
-      // Begin Mapping. We do this in several stages with increasing algorithmic
-      // complexity and attempt to bail out as quickly as possible at each stage.
-      //
       bool success = true;
 
       // Stage 1: Construct a mapping from the mapping ID. This step can fail
@@ -1233,6 +1208,27 @@ void MapperThread::Run()
     {
       curgen++;
 
+      if (live_status_)
+      {
+        std::stringstream msg;
+
+        msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
+            << std::setw(11) << (total_mappings - valid_mappings) << std::setw(11) << valid_mappings
+            << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
+            << std::setw(11) << mappings_since_last_best_update;
+
+        if (valid_mappings > 0)
+        {
+          msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << (stats_.thread_best.stats.utilization * 100) << "%"
+              << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy / stats_.thread_best.stats.algorithmic_computes;
+        }
+
+        mutex_->lock();
+        mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
+        refresh();
+        mutex_->unlock();
+      }
+
       if (curgen == 1)
       {
         // Produce n random mappings
@@ -1241,7 +1237,7 @@ void MapperThread::Run()
         while (current_worklist_.size() < population_size_)
         {
           mapspace::ID mapping_id;
-          search_->Next(mapping_id,0);
+          search_->Next(mapping_id, 0);
 
           //
           // Begin Mapping. We do this in several stages with increasing algorithmic
@@ -1335,35 +1331,10 @@ void MapperThread::Run()
 
           current_worklist_.push_back(GeneticMapping(mapping_id, Cost(stats, optimization_metrics_.at(0)), mutation_t::none));
         }
-
-        // Print the mappings
-        // std::cout << "Total mappings: " << total_mappings << "ieçüktieJütJÖJİEÜTJİEÜTİETktjöCÇJÖcçJÖCÇJÖ\n";
-        // int cnt = 1;
-        // for (auto mapping : current_worklist_)
-        // {
-        //   auto mf = mapping.mapping_id;
-        //   uint128_t mapping_index_factorization_id = mf[int(mapspace::Dimension::IndexFactorization)];
-        //   uint128_t mapping_permutation_id = mf[int(mapspace::Dimension::LoopPermutation)];
-        //   uint128_t mapping_spatial_id = mf[int(mapspace::Dimension::Spatial)];
-        //   uint128_t mapping_datatype_bypass_id = mf[int(mapspace::Dimension::DatatypeBypass)];
-
-        //   std::cout << cnt++ << " ";
-        //   std::cout << mapping_index_factorization_id << " ";
-        //   std::cout << mapping_permutation_id << " ";
-        //   std::cout << mapping_spatial_id << " ";
-        //   std::cout << mapping_datatype_bypass_id << " ";
-        //   std::cout << mapping.cost << std::endl;
-        //   // Mapping mapping2;
-        //   // auto construction_status = mapspace_->ConstructMapping(mapping.mapping_id, &mapping2, !diagnostics_on_);
-
-        // }
       }
       else
       {
-        // for(int j=0;j<current_worklist_.size();++j){
-        //   mapspace::ID mapping_id100(mapspace_->AllSizes());
-        //   mapping_id100.Set(int(mapspace::Dimension::IndexFactorization), current_worklist_[j].mapping_id[int(mapspace::Dimension::IndexFactorization)]);
-        // }
+        // select mutation type
         double mut_probs[6];
         mut_probs[0] = p_crossover_;
         mut_probs[1] = p_loop_;
@@ -1410,52 +1381,25 @@ void MapperThread::Run()
           }
         }
 
-        // for (uint32_t i = 0; i < population_size_; ++i) {
-        //   if (next_worklist_[i].mut_type == mutation_t::crossover)
-        //     std::cout << i << " Crossover  !" << nc<<"!\n" ;
-        //   else if (next_worklist_[i].mut_type == mutation_t::loop)
-        //     std::cout << i << " loop\n";
-        //   else if (next_worklist_[i].mut_type == mutation_t::data_bypass)
-        //     std::cout << i << " data_bypass\n";
-        //   else if (next_worklist_[i].mut_type == mutation_t::index_factorization)
-        //     std::cout << i << " index_factorization\n";
-        //   else if (next_worklist_[i].mut_type == mutation_t::reproduce)
-        //     std::cout << i << " reproduce\n";
-        //     else if (next_worklist_[i].mut_type == mutation_t::random)
-        //     std::cout << i << " random !" << nr <<"!\n";
-        // }
-        // std::cout << " nc=" << nc << " , nr=" << nr <<"\n";
-        // std::cout << "No of tournaments: " << n_tours << "\n";
-        // std::cout << "Population: " << population_size_ << "\n";
-
+        // Run tournaments
         std::vector<int> win_indices;
         run_tournament(current_worklist_, win_indices, population_size_,
                        n_tours, tournament_size_, mt);
-        std::cout << "finished tournaments"
-                  << std::endl;
-        // std::cout << win_indices.size() << std::endl;
-        // for (int i = 0; i < (int)win_indices.size(); ++i)
-        // {
-        //   if ((uint32_t)win_indices[i] < population_size_)
-        //     // std::cout << "yes" << i << "\n";
-        //   else
-        //     // std::cout << "no" << i << "\n";
-        // }
+        // std::cout << "finished tournaments"
+        //           << std::endl;
 
+        // Perform mutations
         int pos = 0;
         int donor_pos = 0;
         int idx = 0;
         while (pos < n_tours)
-        { std::cout << "Position" << pos << std::endl;
+        {
           if (next_worklist_[idx].mut_type == mutation_t::random)
           {
-            std::cout << "random search" << std::endl;
-
             while (true)
             {
-              std::cout << "random search" << std::endl;
               mapspace::ID mapping_id;
-              search_->Next(mapping_id,0);
+              search_->Next(mapping_id, 0);
 
               //
               // Begin Mapping. We do this in several stages with increasing algorithmic
@@ -1557,11 +1501,8 @@ void MapperThread::Run()
 
             if (next_worklist_[idx].mut_type == mutation_t::crossover)
             {
-              std::cout << "crossover" << std::endl;
-
-              // Get secondary index
+              // Get secondary index, perform crossover
               auto donor_index = win_indices[pos++];
-              double c1 = next_worklist_[idx].cost;
               crossover(
                   current_worklist_[parent_index], current_worklist_[donor_index], next_worklist_[idx], mt,
                   total_mappings,
@@ -1569,16 +1510,9 @@ void MapperThread::Run()
                   invalid_mappings_mapcnstr,
                   invalid_mappings_eval,
                   engine);
-              double c2 = next_worklist_[idx].cost;
-              // if (c2 != c1)
-              //   std::cout << idx << " yes\n";
-              // else
-              //   std::cout << idx << " no\n";
             }
             else if (next_worklist_[idx].mut_type == mutation_t::loop)
             {
-                            std::cout << "loop permute" << std::endl;
-
               loop_permute_mutation(current_worklist_[parent_index], next_worklist_[idx], mt,
                                     total_mappings,
                                     valid_mappings,
@@ -1588,8 +1522,6 @@ void MapperThread::Run()
             }
             else if (next_worklist_[idx].mut_type == mutation_t::data_bypass)
             {
-                            std::cout << "dbypass" << std::endl;
-
               data_bypass_mutation(current_worklist_[parent_index], next_worklist_[idx], mt,
                                    total_mappings,
                                    valid_mappings,
@@ -1599,8 +1531,6 @@ void MapperThread::Run()
             }
             else if (next_worklist_[idx].mut_type == mutation_t::index_factorization)
             {
-                            std::cout << "index factorization" << std::endl;
-
               index_factorization_mutation(current_worklist_[parent_index], next_worklist_[idx], mt,
                                            total_mappings,
                                            valid_mappings,
@@ -1610,24 +1540,107 @@ void MapperThread::Run()
             }
             else if (next_worklist_[idx].mut_type == mutation_t::reproduce)
             {
-                            std::cout << "reproduce" << std::endl;
-
               next_worklist_[idx] = current_worklist_[parent_index];
             }
             else
             {
-                            std::cout << "no way" << std::endl;
-
               // Should not come here
             }
           }
           ++idx;
         }
-        std::cout << "generation " << curgen << " done" << std::endl;
+
+        // UPDATE THE WORKLIST FOR THE NEXT GENERATION
+        current_worklist_ = next_worklist_;
       }
-      //UPDATE THE WORKLIST FOR THE NEXT GENERATION
-      current_worklist_ = next_worklist_;
-    } // while ()
+
+      // Update best results for current_worklist
+      // Is the new mapping "better" than the previous best mapping?
+      for (int i = 0; i < current_worklist_.size(); ++i)
+      {
+
+        // Stage 1: Construct a mapping from the mapping ID. This step can fail
+        //          because the space of *legal* mappings isn't dense (unfortunately),
+        //          so a mapping ID may point to an illegal mapping.
+        Mapping mapping;
+
+        auto construction_status = mapspace_->ConstructMapping(current_worklist_[i].mapping_id, &mapping, !diagnostics_on_);
+        // Stage 2: (Re)Configure a hardware model to evaluate the mapping
+        //          on, and run some lightweight pre-checks that the
+        //          model can use to quickly reject a nest.
+        // engine.Spec(arch_specs_);
+        auto status_per_level = engine.PreEvaluationCheck(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+        // Stage 3: Heavyweight evaluation.
+        status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+        // SUCCESS!!!
+        auto stats = engine.GetTopology().GetStats();
+        EvaluationResult result = {true, mapping, stats};
+        bool is_sparse_topology = !sparse_optimizations_->no_optimization_applied;
+        if (stats_.thread_best.UpdateIfBetter(result, optimization_metrics_))
+        {
+          if (log_stats_)
+          {
+            // FIXME: improvement only captures the primary stat.
+            double improvement = stats_.thread_best.valid ? (Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) - Cost(stats, optimization_metrics_.at(0))) /
+                                                                Cost(stats_.thread_best.stats, optimization_metrics_.at(0))
+                                                          : 1.0;
+            mutex_->lock();
+            log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
+                        << " " << mappings_since_last_best_update << " " << improvement << std::endl;
+            mutex_->unlock();
+          }
+
+          if (!log_suboptimal_)
+          {
+            mutex_->lock();
+            if (is_sparse_topology)
+            {
+              log_stream_ << "[" << std::setw(3) << thread_id_ << "]"
+                          << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization
+                          << " | pJ/Algorithmic-Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.algorithmic_computes
+                          << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                          << " | " << mapping.PrintCompact()
+                          << std::endl;
+            }
+            else
+            {
+              log_stream_ << "[" << std::setw(3) << thread_id_ << "]"
+                          << " Utilization = " << std::setw(4) << OUT_FLOAT_FORMAT << std::setprecision(2) << stats.utilization
+                          << " | pJ/Compute = " << std::setw(8) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats.energy / stats.actual_computes
+                          << " | " << mapping.PrintCompact()
+                          << std::endl;
+            }
+            mutex_->unlock();
+          }
+
+          mappings_since_last_best_update = 0;
+        }
+      }
+
+      // Update global best results
+      if (!false)
+      {
+        mutex_->lock();
+
+        // Sync from global best to thread_best.
+        bool global_pulled = false;
+        if (best_->valid)
+        {
+          if (stats_.thread_best.UpdateIfBetter(*best_, optimization_metrics_))
+          {
+            global_pulled = true;
+          }
+        }
+
+        // Sync from thread_best to global best.
+        if (stats_.thread_best.valid && !global_pulled)
+        {
+          best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
+        }
+
+        mutex_->unlock();
+      }
+    }
   }
   else
   {
@@ -1947,13 +1960,14 @@ void MapperThread::Run()
     } // while ()
   }
   int iglobal;
-  for(iglobal=0;iglobal<current_worklist_.size();++iglobal){
-    if(current_worklist_[iglobal].cost != next_worklist_[iglobal].cost)
+  for (iglobal = 0; iglobal < current_worklist_.size(); ++iglobal)
+  {
+    if (current_worklist_[iglobal].cost != next_worklist_[iglobal].cost)
     {
       std::cout << "you fucked up" << std::endl;
     }
   }
-  if(iglobal >= current_worklist_.size())
+  if (iglobal >= current_worklist_.size())
   {
     std::cout << "all good" << std::endl;
   }
